@@ -14,7 +14,7 @@ def get_level_with_max_pixels(src, max_pixels=50000000):
         opt_level - Largest level with fewer than max_pixels.
     """
 
-    slide_dims = open_slide(SOURCE).level_dimensions
+    slide_dims = open_slide(src).level_dimensions
 
     opt_level = -1
     for i, dims in enumerate(slide_dims):
