@@ -50,6 +50,3 @@ def convert_to_dzi(src, dest='./', level=None, max_pixels=50000000, tile_size=25
     creator.create(slide, name_dzi)
 
     return name_dzi
-
-if __name__ == '__main__':
-    print(convert_to_dzi('Consult 13-97.ndpi'))
