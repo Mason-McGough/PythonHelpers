@@ -72,14 +72,15 @@ def copy_files(loc, dest, rename=False):
     files = list_files(loc)
 
     # copy files in list to dest
-    for this_file in files:
+    for i, this_file in enumerate(files):
         # change name if renaming
         if rename:
             # replace slashes with hyphens to preserve unique name
-            out_file = sub(r'\\|/', '-', this_file)
+            out_file = sub(r'^./', '', this_file)
+            out_file = sub(r'\\|/', '-', out_file)
             out_file = join(dest, out_file)
             copy(this_file, out_file)
-            this_file = out_file
+            files[i] = out_file
         else:
             copy(this_file, dest)
 
