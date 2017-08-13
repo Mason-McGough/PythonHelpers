@@ -29,6 +29,18 @@ def convert_to_dzi(src, dest='./', level=None, max_pixels=50000000, tile_size=25
                    resize_filter='bicubic'):
     """
     Convert the image src to a dzi file and save in dest.
+
+    Inputs:
+        src - Source to the image to be converted to dzi format.
+        dest - Location to save the new dzi file. (default: './')
+        level - The Openslide level at which to save the dzi file. If set to none,
+                it is set to the value which maximizes the number of pixels subject
+                to the max_pixels size. (default: None)
+        max_pixels - The maximum number of pixels allowed if level is not specified.
+                     if level is not specified, has no effect. (default: 50000000)
+
+    Outputs:
+        name_dzi - The full path of the new dzi file created.
     """
 
     if level is None:

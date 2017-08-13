@@ -9,6 +9,11 @@ def list_files(loc, return_dirs=False, return_files=True):
 
     Inputs:
         loc - Path to directory to list files from.
+        return_dirs - If true, returns directory names in loc. (default: False)
+        return_files - If true, returns filenames in loc. (default: True)
+
+    Outputs:
+        files - List of names of all files and/or directories in loc.
     """
 
     files = [join(loc, x) for x in listdir(loc)]
