@@ -1,6 +1,10 @@
-import deepzoom
+from __future__ import division
+from math import sqrt
 from os.path import basename, splitext, join
+import deepzoom
 from openslide import open_slide
+
+import pdb
 
 def get_level_with_max_pixels(src, max_pixels=50000000):
     """
@@ -37,7 +41,7 @@ def convert_to_dzi(src, dest='./', level=None, max_pixels=50000000, tile_size=25
                 it is set to the value which maximizes the number of pixels subject
                 to the max_pixels size. (default: None)
         max_pixels - The maximum number of pixels allowed if level is not specified.
-                     if level is not specified, has no effect. (default: 50000000)
+                     if level is specified, has no effect. (default: 50000000)
 
     Outputs:
         name_dzi - The full path of the new dzi file created.
@@ -45,9 +49,19 @@ def convert_to_dzi(src, dest='./', level=None, max_pixels=50000000, tile_size=25
 
     if level is None:
         level = get_level_with_max_pixels(src, max_pixels)
+        if level is -1:
+            level = 0
+            orig_dims = open_slide(src).dimensions
+            k = orig_dims[0]/orig_dims[1]
+            c = sqrt(max_pixels/k)
+            opt_dims = (int(k*c), int(c))
+        else:
+            opt_dims = slide_dims[level]
+    else:
+        slide_dims = open_slide(src).level_dimensions
+        opt_dims = slide_dims[level]
 
-    slide_dims = open_slide(src).level_dimensions
-    slide = open_slide(src).read_region((0, 0), level, slide_dims[level])
+    slide = open_slide(src).read_region((0, 0), level, opt_dims)
 
     # Create Deep Zoom Image creator with weird parameters
     creator = deepzoom.ImageCreator(tile_size=tile_size,
