@@ -56,11 +56,14 @@ def convert_to_dzi(src, dest='./', level=None, max_pixels=50000000, tile_size=25
             c = sqrt(max_pixels/k)
             opt_dims = (int(k*c), int(c))
         else:
+            slide_dims = open_slide(src).level_dimensions
             opt_dims = slide_dims[level]
     else:
         slide_dims = open_slide(src).level_dimensions
         opt_dims = slide_dims[level]
 
+    print(level)
+    print(opt_dims)
     slide = open_slide(src).read_region((0, 0), level, opt_dims)
 
     # Create Deep Zoom Image creator with weird parameters
