@@ -40,11 +40,15 @@ def get_nested_dirs(locs=['.']):
     locs.
 
     Inputs:
-        locs - List of paths to directories to search.
+        locs - String of path or list of paths to directories to search.
 
     Outputs:
         dirs - List of paths to all subfolders of locs.
     """
+
+    # if locs is not a list, place it in one
+    if not isinstance(locs, (list, tuple)):
+        locs = [locs]
 
     dirs = []
     for loc in locs:
