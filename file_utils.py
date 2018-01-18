@@ -3,7 +3,7 @@ from os.path import join, isdir, isfile
 from re import sub
 from shutil import copy
 
-def list_files(loc, return_dirs=False, return_files=True):
+def list_files(loc, return_dirs=False, return_files=True, recursive=False):
     """
     Return a list of all filenames within a directory loc.
 
@@ -11,6 +11,7 @@ def list_files(loc, return_dirs=False, return_files=True):
         loc - Path to directory to list files from.
         return_dirs - If true, returns directory names in loc. (default: False)
         return_files - If true, returns filenames in loc. (default: True)
+        recursive - If true, searches directories recursively. (default: False)
 
     Outputs:
         files - List of names of all files and/or directories in loc.
@@ -18,12 +19,12 @@ def list_files(loc, return_dirs=False, return_files=True):
 
     files = [join(loc, x) for x in listdir(loc)]
 
-    if return_dirs:
+    if return_dirs or recursive:
         # check if file is directory and add it to output if so
         is_dir = [isdir(x) for x in files]
-        new_dirs = [files[x] for x in range(len(files)) if is_dir[x]]
+        found_dirs = [files[x] for x in range(len(files)) if is_dir[x]]
     else:
-        new_dirs = []
+        found_dirs = []
 
     if return_files:
         # check if file is not directory and add it to output
@@ -32,7 +33,20 @@ def list_files(loc, return_dirs=False, return_files=True):
     else:
         new_files = []
 
-    return new_dirs + new_files
+    if recursive and not return_dirs:
+        new_dirs = []
+    else:
+        new_dirs = found_dirs
+
+    deeper_files = []
+    if recursive:
+        for d in found_dirs:
+            deeper_files.extend(list_files(d, 
+                                           return_dirs=return_dirs, 
+                                           return_files=return_files,
+                                           recursive=recursive))
+
+    return new_dirs + new_files + deeper_files
 
 def get_nested_dirs(locs=['.']):
     """
