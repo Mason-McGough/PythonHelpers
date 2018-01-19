@@ -81,7 +81,27 @@ def stitchCrops(crop_imgs):
         assert(crop['img'].mode == mode)
 
     # find dimensions of original image
-    
+    max_dims = [0, 0]
+    max_corner = [0, 0]
+    for crop in crop_imgs:
+        if crop['img'].size[0] > max_dims[0]:
+            max_dims[0] = crop['img'].size[0]
+
+        if crop['img'].size[1] > max_dims[1]:
+            max_dims[1] = crop['img'].size[1]
+
+        if crop['corner'][0] > max_corner[0]:
+            max_corner[0] = crop['corner'][0]
+
+        if crop['corner'][1] > max_corner[1]:
+            max_corner[1] = crop['corner'][1]
+    img_dims = (max_corner[0] + max_dims[0], max_corner[1] + max_dims[1])
 
     # create output image 
-    img = Image.new(mode, size)
+    img = Image.new(mode, img_dims)
+
+    # stitch image
+    for crop in crop_imgs:
+        img.paste(crop['img'], box=crop['corner'])
+
+    return img
