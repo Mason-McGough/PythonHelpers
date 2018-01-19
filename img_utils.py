@@ -1,4 +1,4 @@
-def gridcrop(img, crop_dims):
+def gridCrop(img, crop_dims, stride_size=None):
     """
     Split the image into tiles of smaller images.
 
@@ -12,11 +12,18 @@ def gridcrop(img, crop_dims):
 
     dimensions = img.size # NOTE: Image.size is (width, height)
 
-    crop_corners = _gridCropCorners(dimensions, crop_dims)
+    crop_corners = _gridCropCorners(dimensions, crop_dims, stride_size)
 
     # loop through crop_corners and create crop for each
+    crop_imgs = []
+    for corner in crop_corners:
+        box = (corner[0], 
+               corner[1], 
+               corner[0] + crop_dims[0], 
+               corner[1] + crop_dims[1])
+        crop_imgs.append(img.crop(box))
 
-    return crop_corners
+    return crop_imgs
 
 def _gridCropCorners(im_dims, crop_size, stride_size=None):
     if stride_size is None:
