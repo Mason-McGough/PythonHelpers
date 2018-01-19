@@ -4,15 +4,16 @@ def gridCrop(img, crop_dims, stride_size=None):
 
     Inputs:
         img - PIL Image.
-        crop_dims - The dimensions of each cropped image. (Default: 
-                    [img.size[0]/2, img.size[1]/2])
+        crop_dims - The dimensions of each cropped image.
+        stride_size - The spacing between each cropped image, in pixels. (Default: 
+                    crop_dims)
     Outputs:
         crops - List of crop dicts containing img and other keys.
     """
 
-    dimensions = img.size # NOTE: Image.size is (width, height)
+    img_dims = img.size # NOTE: Image.size is (width, height)
 
-    crop_corners = _gridCropCorners(dimensions, crop_dims, stride_size)
+    crop_corners = _gridCropCorners(img_dims, crop_dims, stride_size)
 
     # loop through crop_corners and create crop for each
     crop_imgs = []
@@ -21,7 +22,9 @@ def gridCrop(img, crop_dims, stride_size=None):
                corner[1], 
                corner[0] + crop_dims[0], 
                corner[1] + crop_dims[1])
-        crop_imgs.append(img.crop(box))
+        crop = {'img': img.crop(box),
+                'corner': corner}
+        crop_imgs.append(crop)
 
     return crop_imgs
 
