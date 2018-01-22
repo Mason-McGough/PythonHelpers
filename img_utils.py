@@ -68,7 +68,7 @@ def stitchCrops(crop_imgs, method='average'):
 
     Inputs:
         crop_imgs - List of crop dicts containing the following keys:
-                        'img' - Numpy array containing image.
+                        'img' - Numpy array.
                         'corner' - Tuple specifying the location of the upper-left
                                    corner of the image.
         method - Blend method to combine two images. Options are:
@@ -85,6 +85,74 @@ def stitchCrops(crop_imgs, method='average'):
     # check that all crops are of same mode
     for crop in crop_imgs:
         assert(crop['img'].mode == mode)
+
+    # find dimensions of original image
+    max_dims = [0, 0]
+    max_corner = [0, 0]
+    for crop in crop_imgs:
+        if crop['img'].size[0] > max_dims[0]:
+            max_dims[0] = crop['img'].size[0]
+
+        if crop['img'].size[1] > max_dims[1]:
+            max_dims[1] = crop['img'].size[1]
+
+        if crop['corner'][0] > max_corner[0]:
+            max_corner[0] = crop['corner'][0]
+
+        if crop['corner'][1] > max_corner[1]:
+            max_corner[1] = crop['corner'][1]
+    img_dims = (max_corner[0] + max_dims[0], max_corner[1] + max_dims[1])
+
+    # create numpy array to hold crops
+    img_np = np.zeros((img_dims[1], img_dims[0]), dtype=int)
+
+    # stitch image into numpy array
+    for crop in crop_imgs:
+        idxs = (crop['corner'][1], crop['corner'][1] + crop['img'].size[1], 
+                crop['corner'][0], crop['corner'][0] + crop['img'].size[0])
+        img_section = img_np[idxs[0]:idxs[1], idxs[2]:idxs[3]]
+        crop_np = np.asarray(crop['img'])
+
+        # blend method
+        if method == 'or':
+            crop_merged = np.bitwise_or(img_section, crop_np)
+        elif method == 'and':
+            crop_merged = np.bitwise_and(img_section, crop_np)
+        elif method == 'average':
+            crop_merged = (img_section + crop_np) / 2.0
+        else:
+            warnings.warn("Invalid method. Reverting to 'average'. Your method: %s" 
+                          % method, UserWarning)
+            crop_merged = (img_section + crop_np) / 2.0
+
+        img_np[idxs[0]:idxs[1], idxs[2]:idxs[3]] = crop_merged
+
+    # convert numpy array into PIL image
+    img = Image.fromarray(img_np)
+
+    return img
+
+def stitchBinary(crop_imgs, method='average'):
+    """
+    Merge a list of regularly-spaced cropped binary images into one single image.
+
+    Inputs:
+        crop_imgs - List of crop dicts containing the following keys:
+                        'img' - Numpy array containing image.
+                        'corner' - Tuple specifying the location of the upper-left
+                                   corner of the image.
+        method - Blend method to combine two images. Options are:
+                    'and'
+                    'or'
+                    'xor'
+    Outputs:
+        img - Stitched image.
+    """
+
+    # check that all crops are binary numpy arrays
+    for crop in crop_imgs:
+        if not np.array_equal(crop['img'], crop['img'].astype(bool)):
+            
 
     # find dimensions of original image
     max_dims = [0, 0]
