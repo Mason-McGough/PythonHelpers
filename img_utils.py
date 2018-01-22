@@ -1,3 +1,4 @@
+import warnings
 import numpy as np
 from PIL import Image
 
@@ -115,11 +116,13 @@ def stitchCrops(crop_imgs, method='average'):
         # blend method
         if method == 'or':
             crop_merged = np.bitwise_or(img_section, crop_np)
-        if method == 'and':
+        elif method == 'and':
             crop_merged = np.bitwise_and(img_section, crop_np)
-        if method == 'average':
+        elif method == 'average':
             crop_merged = (img_section + crop_np) / 2.0
         else:
+            warnings.warn("Invalid method. Reverting to 'average'. Your method: %s" 
+                          % method, UserWarning)
             crop_merged = (img_section + crop_np) / 2.0
 
         img_np[idxs[0]:idxs[1], idxs[2]:idxs[3]] = crop_merged
