@@ -1,3 +1,4 @@
+import numpy as np
 from PIL import Image
 
 def gridCrop(img, crop_dims, stride_size=None, include_excess=True):
@@ -60,15 +61,19 @@ def _gridCropCorners(im_dims, crop_size, stride_size=None, include_excess=True):
 
     return crop_corners
 
-def stitchCrops(crop_imgs):
+def stitchCrops(crop_imgs, method='average'):
     """
     Merge a list of regularly-spaced cropped images into one single image.
 
     Inputs:
         crop_imgs - List of crop dicts containing the following keys:
-                        'img' - PIL image.
+                        'img' - Numpy array containing image.
                         'corner' - Tuple specifying the location of the upper-left
                                    corner of the image.
+        method - Blend method to combine two images. Options are:
+                    'average' (Default)
+                    'and'
+                    'or'
     Outputs:
         img - Stitched image.
     """
@@ -97,11 +102,29 @@ def stitchCrops(crop_imgs):
             max_corner[1] = crop['corner'][1]
     img_dims = (max_corner[0] + max_dims[0], max_corner[1] + max_dims[1])
 
-    # create output image 
-    img = Image.new(mode, img_dims)
+    # create numpy array to hold crops
+    img_np = np.zeros((img_dims[1], img_dims[0]), dtype=int)
 
-    # stitch image
+    # stitch image into numpy array
     for crop in crop_imgs:
-        img.paste(crop['img'], box=crop['corner'])
+        idxs = (crop['corner'][1], crop['corner'][1] + crop['img'].size[1], 
+                crop['corner'][0], crop['corner'][0] + crop['img'].size[0])
+        img_section = img_np[idxs[0]:idxs[1], idxs[2]:idxs[3]]
+        crop_np = np.asarray(crop['img'])
+
+        # blend method
+        if method == 'or':
+            crop_merged = np.bitwise_or(img_section, crop_np)
+        if method == 'and':
+            crop_merged = np.bitwise_and(img_section, crop_np)
+        if method == 'average':
+            crop_merged = (img_section + crop_np) / 2.0
+        else:
+            crop_merged = (img_section + crop_np) / 2.0
+
+        img_np[idxs[0]:idxs[1], idxs[2]:idxs[3]] = crop_merged
+
+    # convert numpy array into PIL image
+    img = Image.fromarray(img_np)
 
     return img
