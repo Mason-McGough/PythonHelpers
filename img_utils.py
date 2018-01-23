@@ -1,6 +1,5 @@
 import warnings
 import numpy as np
-from PIL import Image
 
 def gridCrop(img, crop_dims, stride_size=None, include_excess=True):
     """
@@ -23,18 +22,16 @@ def gridCrop(img, crop_dims, stride_size=None, include_excess=True):
         crop_imgs - List of crop dicts containing img and other keys.
     """
 
-    img_dims = img.size # NOTE: Image.size is (width, height)
+    img_dims = img.shape # NOTE: (rows, cols)
 
     crop_corners = _gridCropCorners(img_dims, crop_dims, stride_size, include_excess)
 
     # loop through crop_corners and create crop for each
     crop_imgs = []
     for corner in crop_corners:
-        box = (corner[0], 
-               corner[1], 
-               corner[0] + crop_dims[0], 
-               corner[1] + crop_dims[1])
-        crop = {'img': img.crop(box),
+        idxs = (corner[0], corner[0] + crop_dims[0],
+                corner[1], corner[1] + crop_dims[1])
+        crop = {'img': img[idxs[0]:idxs[1], idxs[2]:idxs[3], :],
                 'corner': corner}
         crop_imgs.append(crop)
 
@@ -44,21 +41,20 @@ def _gridCropCorners(im_dims, crop_size, stride_size=None, include_excess=True):
     if stride_size is None:
         stride_size = crop_size
 
-    assert(len(im_dims) == 2 
-           and len(crop_size) == 2 
+    assert(len(crop_size) == 2 
            and len(stride_size) == 2)
 
-    c_indices = range(0, im_dims[0] - crop_size[0], stride_size[0])
-    r_indices = range(0, im_dims[1] - crop_size[1], stride_size[1])
+    r_indices = range(0, im_dims[0] - crop_size[0], stride_size[0])
+    c_indices = range(0, im_dims[1] - crop_size[1], stride_size[1])
     if include_excess:
-        c_indices.append(im_dims[0] - crop_size[0])
-        r_indices.append(im_dims[1] - crop_size[1])
+        r_indices.append(im_dims[0] - crop_size[0])
+        c_indices.append(im_dims[1] - crop_size[1])
 
     crop_corners = []
     crop_ctr = 0
-    for c in c_indices:
-        for r in r_indices:
-            crop_corners.append((c, r))
+    for r in r_indices:
+        for c in c_indices:
+            crop_corners.append((r, c))
 
     return crop_corners
 
@@ -93,11 +89,11 @@ def stitchCrops(crop_imgs, method='average'):
     max_dims = [0, 0]
     max_corner = [0, 0]
     for crop in crop_imgs:
-        if crop['img'].size[0] > max_dims[0]:
-            max_dims[0] = crop['img'].size[0]
+        if crop['img'].shape[0] > max_dims[0]:
+            max_dims[0] = crop['img'].shape[0]
 
-        if crop['img'].size[1] > max_dims[1]:
-            max_dims[1] = crop['img'].size[1]
+        if crop['img'].shape[1] > max_dims[1]:
+            max_dims[1] = crop['img'].shape[1]
 
         if crop['corner'][0] > max_corner[0]:
             max_corner[0] = crop['corner'][0]
@@ -107,13 +103,13 @@ def stitchCrops(crop_imgs, method='average'):
     img_dims = (max_corner[0] + max_dims[0], max_corner[1] + max_dims[1])
 
     # create numpy array to hold crops
-    img = np.zeros((img_dims[1], img_dims[0]), dtype=int)
+    img = np.zeros((img_dims[0], img_dims[1]), dtype=int)
 
     # stitch image into numpy array
     for crop in crop_imgs:
-        idxs = (crop['corner'][1], crop['corner'][1] + crop['img'].size[1], 
-                crop['corner'][0], crop['corner'][0] + crop['img'].size[0])
-        img_section = img_np[idxs[0]:idxs[1], idxs[2]:idxs[3]]
+        idxs = (crop['corner'][0], crop['corner'][0] + crop['img'].shape[0], 
+                crop['corner'][1], crop['corner'][1] + crop['img'].shape[1])
+        img_section = img[idxs[0]:idxs[1], idxs[2]:idxs[3]]
 
         # blend method
         if method == 'or':
