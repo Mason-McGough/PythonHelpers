@@ -31,7 +31,11 @@ def gridCrop(img, crop_dims, stride_size=None, include_excess=True):
     for corner in crop_corners:
         idxs = (corner[0], corner[0] + crop_dims[0],
                 corner[1], corner[1] + crop_dims[1])
-        crop = {'img': img[idxs[0]:idxs[1], idxs[2]:idxs[3], :],
+        try:
+            crop_img = img[idxs[0]:idxs[1], idxs[2]:idxs[3], :]
+        except IndexError:
+            crop_img = img[idxs[0]:idxs[1], idxs[2]:idxs[3]]
+        crop = {'img': crop_img,
                 'corner': corner}
         crop_imgs.append(crop)
 
@@ -75,8 +79,22 @@ def stitchCrops(crop_imgs, method='average'):
         img - Numpy array with stitched image.
     """
 
-    # determine type of crops
+    # determine type and number of channel of crops
     mode = crop_imgs[0]['img'].dtype
+    try:
+        n_channels = crop_imgs[0]['img'].shape[2]
+    except IndexError:
+        n_channels = 1
+
+    # check that all crops have same number of channels
+    for crop in crop_imgs:
+        try:
+            crop_n_channel = crop['img'].shape[2]
+        except IndexError:
+            crop_n_channel = 1
+
+        if crop_n_channel != n_channels:
+            raise Exception("Number of channels is not consistent between images.")
 
     # check that all crops are of same type
     for crop in crop_imgs:
@@ -103,13 +121,16 @@ def stitchCrops(crop_imgs, method='average'):
     img_dims = (max_corner[0] + max_dims[0], max_corner[1] + max_dims[1])
 
     # create numpy array to hold crops
-    img = np.zeros((img_dims[0], img_dims[1]), dtype=int)
+    img = np.zeros((img_dims[0], img_dims[1], n_channels), dtype=int)
 
     # stitch image into numpy array
     for crop in crop_imgs:
         idxs = (crop['corner'][0], crop['corner'][0] + crop['img'].shape[0], 
                 crop['corner'][1], crop['corner'][1] + crop['img'].shape[1])
-        img_section = img[idxs[0]:idxs[1], idxs[2]:idxs[3]]
+        img_section = img[idxs[0]:idxs[1], idxs[2]:idxs[3], :]
+
+        if len(crop['img'].shape) < 3:
+            crop['img'] = np.expand_dims(crop['img'], 2)
 
         # blend method
         if method == 'or':
@@ -125,6 +146,6 @@ def stitchCrops(crop_imgs, method='average'):
                           % method, UserWarning)
             crop_merged = (img_section + crop['img']) / 2.0
 
-        img[idxs[0]:idxs[1], idxs[2]:idxs[3]] = crop_merged
+        img[idxs[0]:idxs[1], idxs[2]:idxs[3], :] = crop_merged
 
     return img
