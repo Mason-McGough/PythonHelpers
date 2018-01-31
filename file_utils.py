@@ -3,7 +3,7 @@ from os.path import join, isdir, isfile
 from re import sub
 from shutil import copy
 
-def list_files(loc, return_dirs=False, return_files=True, recursive=False):
+def list_files(loc, return_dirs=False, return_files=True, recursive=False, valid_exts=None):
     """
     Return a list of all filenames within a directory loc.
 
@@ -12,11 +12,13 @@ def list_files(loc, return_dirs=False, return_files=True, recursive=False):
         return_dirs - If true, returns directory names in loc. (default: False)
         return_files - If true, returns filenames in loc. (default: True)
         recursive - If true, searches directories recursively. (default: False)
+        valid_exts - If a list, only returns files with extensions in list. If None,
+            does nothing. (default: None)
 
     Outputs:
         files - List of names of all files and/or directories in loc.
     """
-
+    
     files = [join(loc, x) for x in listdir(loc)]
 
     if return_dirs or recursive:
@@ -29,9 +31,9 @@ def list_files(loc, return_dirs=False, return_files=True, recursive=False):
     if return_files:
         # check if file is not directory and add it to output
         is_file = [isfile(x) for x in files]
-        new_files = [files[x] for x in range(len(files)) if is_file[x]]
+        found_files = [files[x] for x in range(len(files)) if is_file[x]]
     else:
-        new_files = []
+        found_files = []
 
     if recursive and not return_dirs:
         new_dirs = []
@@ -46,7 +48,15 @@ def list_files(loc, return_dirs=False, return_files=True, recursive=False):
                                            return_files=return_files,
                                            recursive=recursive))
 
-    return new_dirs + new_files + deeper_files
+    if isinstance(valid_exts, (list)):
+        concat_files = found_files + deeper_files
+        new_files = []
+        for e in valid_exts:
+            new_files.extend([f for f in concat_files if f.endswith(e)])
+    else:
+        new_files = found_files + deeper_files
+
+    return new_dirs + new_files
 
 def get_nested_dirs(locs=['.']):
     """
