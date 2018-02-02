@@ -1,7 +1,7 @@
 import warnings
 import numpy as np
 
-def gridCrop(img, crop_dims, stride_size=None, include_excess=True):
+def grid_crop(img, crop_dims, stride_size=None, include_excess=True):
     """
     Split the image into tiles of smaller images.
 
@@ -24,7 +24,7 @@ def gridCrop(img, crop_dims, stride_size=None, include_excess=True):
 
     img_dims = img.shape # NOTE: (rows, cols)
 
-    crop_corners = _gridCropCorners(img_dims, crop_dims, stride_size, include_excess)
+    crop_corners = _grid_crop_corners(img_dims, crop_dims, stride_size, include_excess)
 
     # loop through crop_corners and create crop for each
     crop_imgs = []
@@ -41,7 +41,7 @@ def gridCrop(img, crop_dims, stride_size=None, include_excess=True):
 
     return crop_imgs
 
-def _gridCropCorners(im_dims, crop_size, stride_size=None, include_excess=True):
+def _grid_crop_corners(im_dims, crop_size, stride_size=None, include_excess=True):
     if stride_size is None:
         stride_size = crop_size
 
@@ -62,7 +62,7 @@ def _gridCropCorners(im_dims, crop_size, stride_size=None, include_excess=True):
 
     return crop_corners
 
-def stitchCrops(crop_imgs, method='average'):
+def stitch_crops(crop_imgs, method='average'):
     """
     Merge a list of regularly-spaced cropped images into one single image.
 
