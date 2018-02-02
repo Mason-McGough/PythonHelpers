@@ -1,5 +1,7 @@
-import warnings
+import os, warnings, errno
 import numpy as np
+from imageio import imread, imwrite
+from .file_utils import get_nested_dirs, list_files
 
 def grid_crop(img, crop_dims, stride_size=None, include_excess=True):
     """
@@ -149,3 +151,42 @@ def stitch_crops(crop_imgs, method='average'):
         img[idxs[0]:idxs[1], idxs[2]:idxs[3], :] = crop_merged
 
     return img
+
+def subcrop_images(src_dir, dest_dir, crop_dims, stride_size=None, 
+                   output_ext=".jpg", write_kwargs={}, verbose=False):
+    # get all files
+    file_list = list_files(src_dir, recursive=True)
+
+    if verbose:
+        print("number of imgs: %d" % len(file_list))
+
+    # subcrop images to directory
+    len_src_dir = len(src_dir)
+    for img_path in file_list:
+
+        # create destination if does not exist
+        full_d = os.path.join(dest_dir, img_path[len_src_dir:])
+        try: 
+            os.makedirs(full_d)
+        except OSError as e:
+            if e.errno != errno.EEXIST:
+                raise
+
+        if verbose:
+            print("Reading image: %s" % img_path)
+        img = imread(img_path)
+
+        crops = grid_crop(img, crop_dims, stride_size)
+
+        if verbose:
+            print("Saving %d subcrops in: %s" % (len(crops), full_d))
+        for crop in crops:
+            r = crop['corner'][0]
+            c = crop['corner'][1]
+            filename = "crop-" + str(r) + '-' + str(c) + output_ext
+            filepath = os.path.join(full_d, filename)
+
+            try:
+                imwrite(filepath, crop['img'], **write_kwargs)
+            except IOError:
+                print("cannot convert", crop['img'])
