@@ -152,7 +152,7 @@ def stitch_crops(crop_imgs, method='average'):
 
     return img
 
-def subcrop_images(src_dir, dest_dir, crop_dims, recursive=True, stride_size=None, 
+def grid_crop_images(src_dir, dest_dir, crop_dims, recursive=True, stride_size=None, 
                    output_ext=".jpg", write_kwargs={}, verbose=False):
     """
     Apply grid_crop to all images within a given list.
