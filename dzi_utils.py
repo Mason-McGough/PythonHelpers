@@ -1,10 +1,9 @@
 from __future__ import division
 from math import sqrt
 from os.path import basename, splitext, join
+from PIL import Image
 import deepzoom
 from openslide import open_slide
-
-import pdb
 
 def get_level_with_max_pixels(src, max_pixels=50000000):
     """
@@ -79,3 +78,38 @@ def convert_to_dzi(src, dest='./', level=None, max_pixels=50000000, tile_size=25
     creator.create(slide, name_dzi)
 
     return name_dzi
+
+def convert_slide_image(img_path, output_path, write_kwargs={}):
+    """
+    Load image in img_path and rewrite it to output_path, converting type if needed.
+
+    Inputs:
+        img_path - Path to image.
+        output_path - Path to write image to (extension determines format).
+        write_kwargs - kwargs to pass to the write function
+    Outputs:
+        None
+    """
+
+    openslide_formats = ('.svs', '.tif', '.tiff', '.ndpi', '.vms', '.vmu', '.scn',
+                         '.mrxs', '.svslide', '.bif')
+    image_formats = ('.jpg', '.png', '.tif', '.bmp')
+
+    _, ext = splitext(output_path)
+    if ext in openslide_formats:
+        slide = open_slide(img_path)
+        try:
+            img = slide.read_region((0, 0), 0, slide.dimensions)
+        except:
+            print("Loading image failed: " + output_path)
+    elif ext in image_formats:
+        img = Image.open(img_path)
+    else:
+        raise Exception('Unsupported format: ' + ext)
+
+    if output_path != img_path:
+        try: 
+            img.save(output_path, **write_kwargs)
+            print("Image saved: " + output_path)
+        except IOError:
+            print("Conversion failed: " + img_path)
