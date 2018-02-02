@@ -152,8 +152,6 @@ def stitch_crops(crop_imgs, method='average'):
 
     return img
 
-from PIL import Image
-from openslide import open_slide
 def convert_image(img_path, output_path, write_kwargs={}):
     """
     Load image in img_path and rewrite it to output_path, converting type if needed.
@@ -166,28 +164,14 @@ def convert_image(img_path, output_path, write_kwargs={}):
         None
     """
 
-    openslide_formats = ('.svs', '.tif', '.tiff', '.ndpi', '.vms', '.vmu', '.scn',
-                         '.mrxs', '.svslide', '.bif')
-    image_formats = ('.jpg', '.png', '.tif', '.bmp')
-
     _, ext = os.path.splitext(output_path)
-    if ext in openslide_formats:
-        slide = open_slide(img_path)
-        try:
-            img = slide.read_region((0, 0), 0, slide.dimensions)
-        except:
-            print("Loading image failed: " + output_path)
-    elif ext in image_formats:
-        img = Image.open(img_path)
-    else:
-        raise Exception('Unsupported format: ' + ext)
+    img = imread(img_path)
 
-    if output_path != img_path:
-        try: 
-            img.save(output_path, **write_kwargs)
-            print("Image saved: " + output_path)
-        except IOError:
-            print("Conversion failed: " + img_path)
+    try: 
+        imwrite(output_path, img, **write_kwargs)
+        print("Image saved: " + output_path)
+    except IOError:
+        print("Conversion failed: " + img_path)
 
 def grid_crop_images(src_dir, dest_dir, crop_dims, recursive=True, stride_size=None, 
                    output_ext=".jpg", write_kwargs={}, verbose=False):
