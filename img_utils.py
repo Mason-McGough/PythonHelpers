@@ -1,6 +1,7 @@
 import os, warnings, errno
 import numpy as np
 from imageio import imread, imwrite
+from skimage import color
 from .file_utils import get_nested_dirs, list_files
 
 def grid_crop(img, crop_dims, stride_size=None, include_excess=True):
@@ -19,7 +20,6 @@ def grid_crop(img, crop_dims, stride_size=None, include_excess=True):
                     crop_dims)
         include_excess - When true, includes extra crops to include edges that would
                          exceed the largest multiple of crop_dims within the image.
-                         (Default: True)
     Outputs:
         crop_imgs - List of crop dicts containing img and other keys.
     """
@@ -74,7 +74,7 @@ def stitch_crops(crop_imgs, method='average'):
                         'corner' - Tuple specifying the location of the upper-left
                                    corner of the image.
         method - Blend method to combine two images. Options are:
-                    'average' (Default)
+                    'average'
                     'and'
                     'or'
     Outputs:
@@ -152,10 +152,28 @@ def stitch_crops(crop_imgs, method='average'):
 
     return img
 
-def subcrop_images(src_dir, dest_dir, crop_dims, stride_size=None, 
+def subcrop_images(src_dir, dest_dir, crop_dims, recursive=True, stride_size=None, 
                    output_ext=".jpg", write_kwargs={}, verbose=False):
+    """
+    Apply grid_crop to all images within a given list.
+
+    Inputs:
+        src_dir - Directory where images are stored.
+        dest_dir - Directory to output folders of subcropped images (preserves 
+                   structure of source directory).
+        crop_dims - The dimensions of each cropped image.
+        recursive - If true, searches src_dir and all child folders.
+        stride_size - The offset between each cropped image, in pixels. (Default: 
+                      crop_dims)
+        output_ext - Extension to save output files in.
+        write_kwargs - kwargs for imageio.imwrite.
+        verbose - If true, prints status updates.
+    Outputs:
+        None
+    """
+
     # get all files
-    file_list = list_files(src_dir, recursive=True)
+    file_list = list_files(src_dir, recursive=recursive)
 
     if verbose:
         print("number of imgs: %d" % len(file_list))
@@ -190,3 +208,69 @@ def subcrop_images(src_dir, dest_dir, crop_dims, stride_size=None,
                 imwrite(filepath, crop['img'], **write_kwargs)
             except IOError:
                 print("cannot convert", crop['img'])
+
+def stitch_images(src_dir, dest_dir, recursive=True, output_ext='.png', method='or', verbose=False):
+    """
+    Apply stitch_crops to all images grouped within a set of directories.
+
+    Inputs:
+        src_dir - Directory where image directories (one directory -> one image).
+        dest_dir - Directory to output stitched images (preserves structure of 
+                   source directory).
+        recursive - If true, searches src_dir and all child folders.
+        output_ext - Extension to save output files in.
+        method - Stitching method (see stitch_crops).
+        verbose - If true, prints status updates.
+    Outputs:
+        None
+    """
+
+    # get all directories within src_dir
+    dir_list = list_files(src_dir, 
+                          return_dirs=True, 
+                          return_files=False, 
+                          recursive=recursive)
+
+    if verbose:
+        print("number of dirs: %d" % len(dir_list))
+
+    # subcrop images to directory
+    len_output_ext = len(output_ext)
+    len_src_dir = len(src_dir)
+    for d in dir_list:
+        if verbose:
+            print("Current dir: %s" % d)
+
+        # create destination if does not exist
+        filepath = dest_dir + d[len_src_dir:]
+        try: 
+            os.makedirs(os.path.dirname(filepath))
+        except OSError as e:
+            if e.errno != errno.EEXIST:
+                raise
+
+        img_list = list_files(d)
+        if verbose:
+            print("Number of imgs: %d" % len(img_list))
+
+        if len(img_list) == 0:
+            continue
+
+        crop_list = []
+        for img_path in img_list:
+            img_name = os.path.basename(img_path)
+            r = int(img_name.split('-')[1])
+            c = int(img_name.split('-')[2][:-len_output_ext])
+
+            img = color.rgb2gray(imread(img_path)) > (65535 / 2.0)
+            crop_dict = {'img': img,
+                         'corner': (r, c)}
+            crop_list.append(crop_dict)
+
+        img = stitch_crops(crop_list, method=method)
+        
+        out_path = filepath + output_ext
+        try:
+            imwrite(out_path, img)
+        except IOError:
+            print("cannot convert", img)
