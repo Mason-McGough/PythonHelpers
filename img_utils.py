@@ -1,7 +1,6 @@
 import os, warnings, errno
 import numpy as np
 from imageio import imread, imwrite
-from skimage import color
 from .file_utils import get_nested_dirs, list_files
 
 def grid_crop(img, crop_dims, stride_size=None, include_excess=True):
@@ -143,8 +142,10 @@ def stitch_crops(crop_imgs, method='average'):
             crop_merged = np.bitwise_xor(img_section, crop['img'])
         elif method == 'average':
             crop_merged = (img_section + crop['img']) / 2.0
+        elif method == 'max' or method == 'maximum':
+            crop_merged = np.maximum(img_section, crop['img'])
         else:
-            warnings.warn("Invalid method. Reverting to 'average'. Your method: %s" 
+            warnings.warn("Invalid method: '%s'. Reverting to 'average'." 
                           % method, UserWarning)
             crop_merged = (img_section + crop['img']) / 2.0
 
@@ -230,7 +231,7 @@ def grid_crop_images(src_dir, dest_dir, crop_dims, recursive=True, stride_size=N
             except IOError:
                 print("cannot convert", crop['img'])
 
-def stitch_images(src_dir, dest_dir, recursive=True, output_ext='.png', method='or', verbose=False):
+def stitch_images(src_dir, dest_dir, recursive=True, output_ext='.jpg', method='average', verbose=False):
     """
     Apply stitch_crops to all images grouped within a set of directories.
 
@@ -283,7 +284,7 @@ def stitch_images(src_dir, dest_dir, recursive=True, output_ext='.png', method='
             r = int(img_name.split('-')[1])
             c = int(img_name.split('-')[2][:-len_output_ext])
 
-            img = color.rgb2gray(imread(img_path)) > (65535 / 2.0)
+            img = imread(img_path)
             crop_dict = {'img': img,
                          'corner': (r, c)}
             crop_list.append(crop_dict)
