@@ -48,7 +48,7 @@ def list_files(loc, return_dirs=False, return_files=True, recursive=False, valid
                                            return_files=return_files,
                                            recursive=recursive))
 
-    if isinstance(valid_exts, (list)):
+    if isinstance(valid_exts, (list, tuple)):
         concat_files = found_files + deeper_files
         new_files = []
         for e in valid_exts:
