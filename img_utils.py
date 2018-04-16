@@ -231,17 +231,19 @@ def grid_crop_images(src_dir, dest_dir, crop_dims, recursive=True, stride_size=N
             except IOError:
                 print("cannot convert", crop['img'])
 
-def stitch_images(src_dir, dest_dir, recursive=True, output_ext='.jpg', method='average', verbose=False):
+def stitch_images(src_dir, dest_dir, recursive=True, output_ext='.jpg', method='average', delimiter='-', verbose=False):
     """
     Apply stitch_crops to all images grouped within a set of directories.
 
     Inputs:
         src_dir - Directory where image directories (one directory -> one image).
         dest_dir - Directory to output stitched images (preserves structure of 
-                   source directory).
+           source directory).
         recursive - If true, searches src_dir and all child folders.
         output_ext - Extension to save output files in.
         method - Stitching method (see stitch_crops).
+        delimiter - Character that separates the row and column indices in the 
+            titles of the images.
         verbose - If true, prints status updates.
     Outputs:
         None
@@ -281,8 +283,8 @@ def stitch_images(src_dir, dest_dir, recursive=True, output_ext='.jpg', method='
         crop_list = []
         for img_path in img_list:
             img_name = os.path.basename(img_path)
-            r = int(img_name.split('-')[1])
-            c = int(img_name.split('-')[2][:-len_output_ext])
+            r = int(img_name.split(delimiter)[1])
+            c = int(img_name.split(delimiter)[2][:-len_output_ext])
 
             img = imread(img_path)
             crop_dict = {'img': img,
