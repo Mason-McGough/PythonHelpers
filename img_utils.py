@@ -125,31 +125,107 @@ def stitch_crops(crop_imgs, method='average'):
     img = np.zeros((img_dims[0], img_dims[1], n_channels), dtype=int)
 
     # stitch image into numpy array
-    for crop in crop_imgs:
-        idxs = (crop['corner'][0], crop['corner'][0] + crop['img'].shape[0], 
-                crop['corner'][1], crop['corner'][1] + crop['img'].shape[1])
-        img_section = img[idxs[0]:idxs[1], idxs[2]:idxs[3], :]
+    if method == 'weighted_average':
+        # sort crops by row and ascending column
+        # row_img_list = []
+        # for each row:
+        #   create `row_img` with height of crops and full width of all crops
+        #   for each column:
+        #       create array `weights` with length of overlap width and range from 0 to 1
+        #       create `overlap_img` as weighted sum of two image overlap regions (use array broadcasting)
+        #       assign `crop1` to `row_img`
+        #       assign `crop2` to `row_img`
+        #       assign `overlap_img` to `row_img`
+        #       row_img_list.append(row_img)
+        #
+        # for row_img in row_img_list:
+        #   create array `weights` with length of overlap height
+        #   create `overlap_img' as weighted sum
+        #       assign row_img1 to img
+        #       assign row_img2 to img
+        #       assign `overlap_img` to img
 
-        if len(crop['img'].shape) < 3:
-            crop['img'] = np.expand_dims(crop['img'], 2)
+        # sort crops by corner position
+        crop_imgs = sorted(crop_imgs, key=lambda x: x['corner'])
+        unique_row_idxs, crop_idxs = np.unique(
+            [i['corner'][0] for i in crop_imgs], 
+            return_index=True
+        )
 
-        # blend method
-        if method == 'or':
-            crop_merged = np.bitwise_or(img_section, crop['img'])
-        elif method == 'and':
-            crop_merged = np.bitwise_and(img_section, crop['img'])
-        elif method == 'xor':
-            crop_merged = np.bitwise_xor(img_section, crop['img'])
-        elif method == 'average':
-            crop_merged = (img_section + crop['img']) / 2.0
-        elif method == 'max' or method == 'maximum':
-            crop_merged = np.maximum(img_section, crop['img'])
-        else:
-            warnings.warn("Invalid method: '%s'. Reverting to 'average'." 
-                          % method, UserWarning)
-            crop_merged = (img_section + crop['img']) / 2.0
+        # group crops into rows by corner position
+        n_rows = len(unique_row_idxs)
+        crop_rows = []
+        for i in range(n_rows):
+            i_first = crop_idxs[i]
+            if i + 1 < n_rows:
+                i_last = crop_idxs[i + 1]
+                crop_rows.append(crop_imgs[i_first:i_last])
+            else:
+                crop_rows.append(crop_imgs[i_first:])
+            
+        # fuse images, first by column, then by row
+        row_img_list = []
+        for i in range(n_rows):
+            crop_row = crop_rows[i]
+            row_img_shape = [crop_row[-1]['img'].shape[0],
+                             crop_row[-1]['corner'][1] + crop_row[-1]['img'].shape[1]]
+            row_img = np.zeros((row_img_shape[0], row_img_shape[1], 3), dtype=np.float64)
+            prev_width = 0
+            for j in range(len(crop_row) - 1):
+                # create overlap_img
+                crop1 = crop_row[i]
+                crop2 = crop_row[i + 1]
+                overlap = [
+                    crop2['corner'][1], 
+                    crop1['corner'][1] + crop1['img'].shape[1]
+                ]
+                overlap_width = overlap[1] - overlap[0]
+                weights = np.linspace(0, 1, overlap_width)
+                weights = np.expand_dims(weights, axis=1)
+                overlap_img = (weights * crop2['img'][:, overlap[0]:] 
+                               + weights[::-1] * crop1['img'][:, 0:overlap_width])
 
-        img[idxs[0]:idxs[1], idxs[2]:idxs[3], :] = crop_merged
+                # blend images into img
+                crop1_rng = (crop1['corner'][1] + prev_width, overlap[0])
+                crop2_rng = (overlap[1], crop2['corner'][1] + crop2['img'].shape[1])
+                row_img[:, crop1_rng[0]:crop1_rng[1]] = crop1['img'][:, prev_width:-overlap_width]
+                row_img[:, crop2_rng[0]:crop2_rng[1]] = crop2['img'][:, overlap_width:]
+                row_img[:, overlap[0]:overlap[1]] = overlap_img
+                row_img_list.append(row_img)
+                prev_width = overlap_width
+
+            import pdb
+            import matplotlib.pyplot as plt
+            pdb.set_trace()
+
+
+        pass
+    else:
+        for crop in crop_imgs:
+            idxs = (crop['corner'][0], crop['corner'][0] + crop['img'].shape[0], 
+                    crop['corner'][1], crop['corner'][1] + crop['img'].shape[1])
+            img_section = img[idxs[0]:idxs[1], idxs[2]:idxs[3], :]
+
+            if len(crop['img'].shape) < 3:
+                crop['img'] = np.expand_dims(crop['img'], 2)
+
+            # blend method
+            if method == 'or':
+                crop_merged = np.bitwise_or(img_section, crop['img'])
+            elif method == 'and':
+                crop_merged = np.bitwise_and(img_section, crop['img'])
+            elif method == 'xor':
+                crop_merged = np.bitwise_xor(img_section, crop['img'])
+            elif method == 'average':
+                crop_merged = (img_section + crop['img']) / 2.0
+            elif method == 'max' or method == 'maximum':
+                crop_merged = np.maximum(img_section, crop['img'])
+            else:
+                warnings.warn("Invalid method: '%s'. Reverting to 'average'." 
+                              % method, UserWarning)
+                crop_merged = (img_section + crop['img']) / 2.0
+
+            img[idxs[0]:idxs[1], idxs[2]:idxs[3], :] = crop_merged
 
     return img
 
@@ -231,7 +307,7 @@ def grid_crop_images(src_dir, dest_dir, crop_dims, recursive=True, stride_size=N
             except IOError:
                 print("cannot convert", crop['img'])
 
-def stitch_images(src_dir, dest_dir, recursive=True, output_ext='.jpg', method='average', delimiter='-', verbose=False):
+def stitch_images(src_dir, dest_dir, recursive=True, output_ext='.jpg', method='average', delimiter='-', zero_index=True, verbose=False):
     """
     Apply stitch_crops to all images grouped within a set of directories.
 
@@ -285,6 +361,10 @@ def stitch_images(src_dir, dest_dir, recursive=True, output_ext='.jpg', method='
             img_name = os.path.basename(img_path)
             r = int(img_name.split(delimiter)[1])
             c = int(img_name.split(delimiter)[2][:-len_output_ext])
+
+            if not zero_index:
+                r = r - 1
+                c = c - 1
 
             img = imread(img_path)
             crop_dict = {'img': img,
