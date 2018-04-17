@@ -80,6 +80,39 @@ def stitch_crops(crop_imgs, method='average'):
         img - Numpy array with stitched image.
     """
 
+    def _stitch_row(crop_row):
+        row_img_shape = [crop_row[-1]['img'].shape[0],
+                         crop_row[-1]['corner'][1] + crop_row[-1]['img'].shape[1]]
+        row_img = np.zeros((row_img_shape[0], row_img_shape[1], 3), dtype=np.float64)
+        prev_width = 0
+        for i in range(len(crop_row) - 1):
+            # create overlap_img
+            crop1 = crop_row[i]
+            crop2 = crop_row[i + 1]
+            overlap = [
+                crop2['corner'][1], 
+                crop1['corner'][1] + crop1['img'].shape[1]
+            ]
+            overlap_width = overlap[1] - overlap[0]
+            weights = np.linspace(0, 1, overlap_width)
+            weights = weights[:, None] # add singleton dimension for broadcasting
+            overlap_img = (weights * crop2['img'][:, 0:overlap_width] 
+                         + weights[::-1] * crop1['img'][:, -overlap_width:])
+
+            # blend images into row_img
+            crop1_rng = (crop1['corner'][1] + prev_width, overlap[0])
+            crop2_rng = (overlap[1], crop2['corner'][1] + crop2['img'].shape[1])
+            row_img[:, crop1_rng[0]:crop1_rng[1]] = crop1['img'][:, prev_width:-overlap_width]
+            row_img[:, crop2_rng[0]:crop2_rng[1]] = crop2['img'][:, overlap_width:]
+            row_img[:, overlap[0]:overlap[1]] = overlap_img
+            prev_width = overlap_width
+
+        span = [
+            crop_row[-1]['corner'][0], 
+            crop_row[-1]['corner'][0] + crop_row[-1]['img'].shape[0]
+        ]
+        return row_img, span
+
     # determine type and number of channel of crops
     mode = crop_imgs[0]['img'].dtype
     try:
@@ -164,42 +197,32 @@ def stitch_crops(crop_imgs, method='average'):
                 crop_rows.append(crop_imgs[i_first:])
             
         # fuse images, first by column, then by row
-        row_img_list = []
-        for i in range(n_rows):
-            crop_row = crop_rows[i]
-            row_img_shape = [crop_row[-1]['img'].shape[0],
-                             crop_row[-1]['corner'][1] + crop_row[-1]['img'].shape[1]]
-            row_img = np.zeros((row_img_shape[0], row_img_shape[1], 3), dtype=np.float64)
-            prev_width = 0
-            for j in range(len(crop_row) - 1):
-                # create overlap_img
-                crop1 = crop_row[i]
-                crop2 = crop_row[i + 1]
-                overlap = [
-                    crop2['corner'][1], 
-                    crop1['corner'][1] + crop1['img'].shape[1]
-                ]
-                overlap_width = overlap[1] - overlap[0]
-                weights = np.linspace(0, 1, overlap_width)
-                weights = np.expand_dims(weights, axis=1)
-                overlap_img = (weights * crop2['img'][:, overlap[0]:] 
-                               + weights[::-1] * crop1['img'][:, 0:overlap_width])
+        prev_ht = 0
+        for i in range(n_rows - 1):
+            # get row imgs
+            crop_row1 = crop_rows[i]
+            crop_row2 = crop_rows[i + 1]
+            row_img1, span1 = _stitch_row(crop_row1)
+            row_img2, span2 = _stitch_row(crop_row2)
 
-                # blend images into img
-                crop1_rng = (crop1['corner'][1] + prev_width, overlap[0])
-                crop2_rng = (overlap[1], crop2['corner'][1] + crop2['img'].shape[1])
-                row_img[:, crop1_rng[0]:crop1_rng[1]] = crop1['img'][:, prev_width:-overlap_width]
-                row_img[:, crop2_rng[0]:crop2_rng[1]] = crop2['img'][:, overlap_width:]
-                row_img[:, overlap[0]:overlap[1]] = overlap_img
-                row_img_list.append(row_img)
-                prev_width = overlap_width
+            # create overlap_img
+            overlap = [span2[0], span1[1]]
+            overlap_ht = overlap[1] - overlap[0]
+            weights = np.linspace(0, 1, overlap_ht)
+            weights = weights[:, None, None]
+            overlap_img = (weights * row_img2[0:overlap_ht]
+                         + weights[::-1] * row_img1[-overlap_ht:])
 
-            import pdb
-            import matplotlib.pyplot as plt
-            pdb.set_trace()
-
-
-        pass
+            # blend images into img
+            row1_rng = [span1[0] + prev_ht, span2[0]]
+            row2_rng = [span1[1], span2[1]]
+            # import pdb
+            # import matplotlib.pyplot as plt
+            # pdb.set_trace()
+            img[row1_rng[0]:row1_rng[1]] = row_img1[prev_ht:-overlap_ht]
+            img[row2_rng[0]:row2_rng[1]] = row_img2[overlap_ht:]
+            img[overlap[0]:overlap[1]] = overlap_img
+            prev_ht = overlap_ht
     else:
         for crop in crop_imgs:
             idxs = (crop['corner'][0], crop['corner'][0] + crop['img'].shape[0], 
