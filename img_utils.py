@@ -63,7 +63,7 @@ def _grid_crop_corners(im_dims, crop_size, stride_size=None, include_excess=True
 
     return crop_corners
 
-def stitch_crops(crop_imgs, method='average'):
+def stitch_crops(crop_imgs, method='weighted_average'):
     """
     Merge a list of regularly-spaced cropped images into one single image.
 
@@ -73,9 +73,12 @@ def stitch_crops(crop_imgs, method='average'):
                         'corner' - Tuple specifying the location of the upper-left
                                    corner of the image.
         method - Blend method to combine two images. Options are:
+                    'weighted_average' (Default)
+                    'max'
                     'average'
                     'and'
                     'or'
+                    'xor'
     Outputs:
         img - Numpy array with stitched image.
     """
@@ -315,15 +318,23 @@ def stitch_images(src_dir, dest_dir, recursive=True, output_ext='.jpg', method='
     """
     Apply stitch_crops to all images grouped within a set of directories.
 
+    Assumes that each directory in src_dir corresponds to its own image. Each image
+    in the directories contain images with names of the form "crop-r-c.ext" where 
+    "r" and "c" are integers giving the row-column indices of the image's upper-left
+    corner in the original image. This input method is modeled to complement the 
+    output of the grid_crop_images function.
+
     Inputs:
         src_dir - Directory where image directories (one directory -> one image).
         dest_dir - Directory to output stitched images (preserves structure of 
-           source directory).
+            source directory).
         recursive - If true, searches src_dir and all child folders.
         output_ext - Extension to save output files in.
         method - Stitching method (see stitch_crops).
         delimiter - Character that separates the row and column indices in the 
             titles of the images.
+        zero_index - If true, assumes row-column indices start from 0. Otherwise,
+            assumes 1.
         verbose - If true, prints status updates.
     Outputs:
         None
