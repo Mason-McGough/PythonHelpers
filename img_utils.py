@@ -314,7 +314,7 @@ def grid_crop_images(src_dir, dest_dir, crop_dims, recursive=True, stride_size=N
             except IOError:
                 print("cannot convert", crop['img'])
 
-def stitch_images(src_dir, dest_dir, recursive=True, output_ext='.jpg', method='average', delimiter='-', zero_index=True, verbose=False):
+def stitch_images(src_dir, dest_dir, recursive=True, output_ext='.jpg', method='weighted_average', delimiter='-', zero_index=True, verbose=False):
     """
     Apply stitch_crops to all images grouped within a set of directories.
 
