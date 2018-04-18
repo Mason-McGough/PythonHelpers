@@ -159,25 +159,6 @@ def stitch_crops(crop_imgs, method='average'):
 
     # stitch image into numpy array
     if method == 'weighted_average':
-        # sort crops by row and ascending column
-        # row_img_list = []
-        # for each row:
-        #   create `row_img` with height of crops and full width of all crops
-        #   for each column:
-        #       create array `weights` with length of overlap width and range from 0 to 1
-        #       create `overlap_img` as weighted sum of two image overlap regions (use array broadcasting)
-        #       assign `crop1` to `row_img`
-        #       assign `crop2` to `row_img`
-        #       assign `overlap_img` to `row_img`
-        #       row_img_list.append(row_img)
-        #
-        # for row_img in row_img_list:
-        #   create array `weights` with length of overlap height
-        #   create `overlap_img' as weighted sum
-        #       assign row_img1 to img
-        #       assign row_img2 to img
-        #       assign `overlap_img` to img
-
         # sort crops by corner position
         crop_imgs = sorted(crop_imgs, key=lambda x: x['corner'])
         unique_row_idxs, crop_idxs = np.unique(
