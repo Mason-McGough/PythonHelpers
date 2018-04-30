@@ -5,6 +5,11 @@ from PIL import Image
 import deepzoom
 from openslide import open_slide
 
+try:
+    from functools import reduce
+except ImportError:
+    pass
+
 def get_level_with_max_pixels(src, max_pixels=50000000):
     """
     Return the largest level of Openslide-compatible image src with dimensions
@@ -29,7 +34,7 @@ def get_level_with_max_pixels(src, max_pixels=50000000):
 
 def convert_to_dzi(src, dest='./', level=None, max_pixels=50000000, tile_size=254,
                    tile_overlap=1, tile_format='jpg', image_quality=0.75,
-                   resize_filter='bicubic'):
+                   resize_filter='bicubic', verbose=False):
     """
     Convert the image src to a dzi file and save in dest.
 
@@ -61,8 +66,10 @@ def convert_to_dzi(src, dest='./', level=None, max_pixels=50000000, tile_size=25
         slide_dims = open_slide(src).level_dimensions
         opt_dims = slide_dims[level]
 
-    print(level)
-    print(opt_dims)
+    if verbose:
+        print("Image Level: " + str(level))
+        print("Dimensions: " + str(opt_dims))
+        
     slide = open_slide(src).read_region((0, 0), level, opt_dims)
 
     # Create Deep Zoom Image creator with weird parameters
