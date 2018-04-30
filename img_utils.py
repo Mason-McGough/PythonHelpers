@@ -23,8 +23,27 @@ def grid_crop(img, crop_dims, stride_size=None, include_excess=True):
         crop_imgs - List of crop dicts containing img and other keys.
     """
 
-    img_dims = img.shape # NOTE: (rows, cols)
+    def _grid_crop_corners(im_dims, crop_size, stride_size=None, include_excess=True):
+        if stride_size is None:
+            stride_size = crop_size
 
+        assert(len(crop_size) == 2 
+               and len(stride_size) == 2)
+
+        r_indices = range(0, im_dims[0] - crop_size[0], stride_size[0])
+        c_indices = range(0, im_dims[1] - crop_size[1], stride_size[1])
+        if include_excess:
+            r_indices.append(im_dims[0] - crop_size[0])
+            c_indices.append(im_dims[1] - crop_size[1])
+
+        crop_corners = []
+        crop_ctr = 0
+        for r in r_indices:
+            for c in c_indices:
+                crop_corners.append((r, c))
+        return crop_corners
+
+    img_dims = img.shape # NOTE: (rows, cols)
     crop_corners = _grid_crop_corners(img_dims, crop_dims, stride_size, include_excess)
 
     # loop through crop_corners and create crop for each
@@ -41,27 +60,6 @@ def grid_crop(img, crop_dims, stride_size=None, include_excess=True):
         crop_imgs.append(crop)
 
     return crop_imgs
-
-def _grid_crop_corners(im_dims, crop_size, stride_size=None, include_excess=True):
-    if stride_size is None:
-        stride_size = crop_size
-
-    assert(len(crop_size) == 2 
-           and len(stride_size) == 2)
-
-    r_indices = range(0, im_dims[0] - crop_size[0], stride_size[0])
-    c_indices = range(0, im_dims[1] - crop_size[1], stride_size[1])
-    if include_excess:
-        r_indices.append(im_dims[0] - crop_size[0])
-        c_indices.append(im_dims[1] - crop_size[1])
-
-    crop_corners = []
-    crop_ctr = 0
-    for r in r_indices:
-        for c in c_indices:
-            crop_corners.append((r, c))
-
-    return crop_corners
 
 def stitch_crops(crop_imgs, method='weighted_average'):
     """
