@@ -1,4 +1,5 @@
 test/
+**.egg-info/
 
 *.dzi
 *.pyc
