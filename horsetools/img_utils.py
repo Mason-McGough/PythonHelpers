@@ -3,6 +3,8 @@ import numpy as np
 from imageio import imread, imwrite
 from .file_utils import get_nested_dirs, list_files
 
+VALID_EXTS = ('.jpg', '.jpeg', '.png', '.tif', '.tiff', '.bmp',)
+
 def grid_crop(img, crop_dims, stride_size=None, include_excess=True):
     """
     Split the image into tiles of smaller images.
@@ -84,7 +86,16 @@ def stitch_crops(crop_imgs, method='weighted_average'):
     def _stitch_row(crop_row):
         row_img_shape = [crop_row[-1]['img'].shape[0],
                          crop_row[-1]['corner'][1] + crop_row[-1]['img'].shape[1]]
-        row_img = np.zeros((row_img_shape[0], row_img_shape[1], 3), dtype=np.float64)
+        try:
+            n_channels = crop_row[-1]['img'].shape[2]
+        except IndexError:
+            n_channels = 1
+
+        if n_channels == 1:
+            row_img = np.zeros((row_img_shape[0], row_img_shape[1]), dtype=np.float64)
+        else: 
+            row_img = np.zeros((row_img_shape[0], row_img_shape[1], n_channels), dtype=np.float64)
+
         prev_width = 0
         for i in range(len(crop_row) - 1):
             # create overlap_img
@@ -96,9 +107,14 @@ def stitch_crops(crop_imgs, method='weighted_average'):
             ]
             overlap_width = overlap[1] - overlap[0]
             weights = np.linspace(0, 1, overlap_width)
-            weights = weights[:, None] # add singleton dimension for broadcasting
+            # add singleton dimension for broadcasting
+            if n_channels == 1:
+                weights = weights[None, :]
+            else:
+                weights = weights[None, :, None]
+
             overlap_img = (weights * crop2['img'][:, 0:overlap_width] 
-                         + weights[::-1] * crop1['img'][:, -overlap_width:])
+                         + weights[:, ::-1] * crop1['img'][:, -overlap_width:])
 
             # blend images into row_img
             crop1_rng = (crop1['corner'][1] + prev_width, overlap[0])
@@ -156,7 +172,10 @@ def stitch_crops(crop_imgs, method='weighted_average'):
     img_dims = (max_corner[0] + max_dims[0], max_corner[1] + max_dims[1])
 
     # create numpy array to hold crops
-    img = np.zeros((img_dims[0], img_dims[1], n_channels), dtype=int)
+    if n_channels == 1:
+        img = np.zeros((img_dims[0], img_dims[1]), dtype=int)
+    else:
+        img = np.zeros((img_dims[0], img_dims[1], n_channels), dtype=int)
 
     # stitch image into numpy array
     if method == 'weighted_average':
@@ -191,16 +210,17 @@ def stitch_crops(crop_imgs, method='weighted_average'):
             overlap = [span2[0], span1[1]]
             overlap_ht = overlap[1] - overlap[0]
             weights = np.linspace(0, 1, overlap_ht)
-            weights = weights[:, None, None]
+            if n_channels == 1:
+                weights = weights[:, None]
+            else:
+                weights = weights[:, None, None]
+
             overlap_img = (weights * row_img2[0:overlap_ht]
                          + weights[::-1] * row_img1[-overlap_ht:])
 
             # blend images into img
             row1_rng = [span1[0] + prev_ht, span2[0]]
             row2_rng = [span1[1], span2[1]]
-            # import pdb
-            # import matplotlib.pyplot as plt
-            # pdb.set_trace()
             img[row1_rng[0]:row1_rng[1]] = row_img1[prev_ht:-overlap_ht]
             img[row2_rng[0]:row2_rng[1]] = row_img2[overlap_ht:]
             img[overlap[0]:overlap[1]] = overlap_img
@@ -276,20 +296,19 @@ def grid_crop_images(src_dir, dest_dir, crop_dims, recursive=True, stride_size=N
     """
 
     # get all files
-    file_list = list_files(src_dir, recursive=recursive)
+    file_list = list_files(src_dir, recursive=recursive, valid_exts=VALID_EXTS)
 
     if verbose:
         print("number of imgs: %d" % len(file_list))
 
     # subcrop images to directory
-    len_src_dir = len(src_dir)
     for img_path in file_list:
-
         # create destination if does not exist
-        full_d = os.path.join(dest_dir, img_path[len_src_dir:])
+        full_d = os.path.join(dest_dir, img_path.split('/')[-1])
         try: 
             os.makedirs(full_d)
         except OSError as e:
+            print(e)
             if e.errno != errno.EEXIST:
                 raise
 
@@ -310,7 +329,7 @@ def grid_crop_images(src_dir, dest_dir, crop_dims, recursive=True, stride_size=N
             try:
                 imwrite(filepath, crop['img'], **write_kwargs)
             except IOError:
-                print("cannot convert", crop['img'])
+                print("cannot convert: ", filepath)
 
 def stitch_images(src_dir, dest_dir, recursive=True, output_ext='.jpg', method='weighted_average', delimiter='-', zero_index=True, verbose=False):
     """
@@ -349,13 +368,14 @@ def stitch_images(src_dir, dest_dir, recursive=True, output_ext='.jpg', method='
 
     # subcrop images to directory
     len_output_ext = len(output_ext)
-    len_src_dir = len(src_dir)
     for d in dir_list:
         if verbose:
             print("Current dir: %s" % d)
 
         # create destination if does not exist
-        filepath = dest_dir + d[len_src_dir:]
+        imgname_noext = os.path.splitext(d.split('/')[-1])[0]
+        filepath = os.path.join(dest_dir, imgname_noext)
+
         try: 
             os.makedirs(os.path.dirname(filepath))
         except OSError as e:
