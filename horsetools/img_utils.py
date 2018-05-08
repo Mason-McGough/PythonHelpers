@@ -392,8 +392,8 @@ def stitch_images(src_dir, dest_dir, recursive=True, output_ext='.jpg', method='
         crop_list = []
         for img_path in img_list:
             img_name = os.path.basename(img_path)
-            r = int(img_name.split(delimiter)[1])
-            c = int(img_name.split(delimiter)[2][:-len_output_ext])
+            r = int(img_name.split(delimiter)[-2])
+            c = int(img_name.split(delimiter)[-1][:-len_output_ext])
 
             if not zero_index:
                 r = r - 1
