@@ -15,7 +15,7 @@ def grid_crop(img, crop_dims, stride_size=None, include_excess=True):
     behavior can be overridden by setting 'include_excess' to False.
 
     Inputs:
-        img - PIL Image.
+        img - Numpy-like image.
         crop_dims - The dimensions of each cropped image.
         stride_size - The offset between each cropped image, in pixels. (Default: 
                     crop_dims)
@@ -63,7 +63,7 @@ def grid_crop(img, crop_dims, stride_size=None, include_excess=True):
 
     return crop_imgs
 
-def stitch_crops(crop_imgs, method='weighted_average'):
+def stitch_crops(crop_imgs, method='linear_average'):
     """
     Merge a list of regularly-spaced cropped images into one single image.
 
@@ -73,7 +73,7 @@ def stitch_crops(crop_imgs, method='weighted_average'):
                         'corner' - Tuple specifying the location of the upper-left
                                    corner of the image.
         method - Blend method to combine two images. Options are:
-                    'weighted_average' (Default)
+                    'linear_average' (Default)
                     'max'
                     'average'
                     'and'
@@ -178,7 +178,7 @@ def stitch_crops(crop_imgs, method='weighted_average'):
         img = np.zeros((img_dims[0], img_dims[1], n_channels), dtype=int)
 
     # stitch image into numpy array
-    if method == 'weighted_average':
+    if method == 'linear_average':
         # sort crops by corner position
         crop_imgs = sorted(crop_imgs, key=lambda x: x['corner'])
         unique_row_idxs, crop_idxs = np.unique(
@@ -331,7 +331,7 @@ def grid_crop_images(src_dir, dest_dir, crop_dims, recursive=True, stride_size=N
             except IOError:
                 print("cannot convert: ", filepath)
 
-def stitch_images(src_dir, dest_dir, recursive=True, output_ext='.jpg', method='weighted_average', delimiter='-', zero_index=True, verbose=False):
+def stitch_images(src_dir, dest_dir, recursive=True, output_ext='.jpg', method='linear_average', delimiter='-', zero_index=True, verbose=False):
     """
     Apply stitch_crops to all images grouped within a set of directories.
 
