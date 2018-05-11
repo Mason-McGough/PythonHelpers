@@ -63,27 +63,31 @@ def grid_crop(img, crop_dims, stride_size=None, include_excess=True):
 
     return crop_imgs
 
-def stitch_crops(crop_imgs, method='linear_average'):
+def stitch_crops(crop_imgs, method='linear_average', method_args={}):
     """
     Merge a list of regularly-spaced cropped images into one single image.
 
     Inputs:
         crop_imgs - List of crop dicts containing the following keys:
-                        'img' - Numpy array with image.
-                        'corner' - Tuple specifying the location of the upper-left
-                                   corner of the image.
+            'img' - Numpy array with image.
+            'corner' - Tuple specifying the location of the upper-left
+                       corner of the image.
         method - Blend method to combine two images. Options are:
-                    'linear_average' (Default)
-                    'max'
-                    'average'
-                    'and'
-                    'or'
-                    'xor'
+            'linear_average' (Default)
+            'sigmoid_average'
+            'max'
+            'average'
+            'and'
+            'or'
+            'xor'
+        method_args - Dict containing keyword args to use with method. Options are:
+            'sigmoid_average':
+                'k' - Sets spread of sigmoid function along x-axis (Default: 12)
     Outputs:
         img - Numpy array with stitched image.
     """
 
-    def _stitch_row(crop_row):
+    def _stitch_row(crop_row, method, method_args={}):
         row_img_shape = [crop_row[-1]['img'].shape[0],
                          crop_row[-1]['corner'][1] + crop_row[-1]['img'].shape[1]]
         try:
@@ -106,7 +110,19 @@ def stitch_crops(crop_imgs, method='linear_average'):
                 crop1['corner'][1] + crop1['img'].shape[1]
             ]
             overlap_width = overlap[1] - overlap[0]
-            weights = np.linspace(0, 1, overlap_width)
+
+            x_vec = np.linspace(0, 1, overlap_width)
+            if method == 'linear_average':
+                weights = x_vec
+            elif method == 'sigmoid_average':
+                try:
+                    k = method_args['k']
+                except KeyError:
+                    k = 12
+                weights = 1.0 / (1.0 + np.exp(-k * (x_vec - 0.5)))
+            else:
+                weights = x_vec
+
             # add singleton dimension for broadcasting
             if n_channels == 1:
                 weights = weights[None, :]
@@ -178,7 +194,7 @@ def stitch_crops(crop_imgs, method='linear_average'):
         img = np.zeros((img_dims[0], img_dims[1], n_channels), dtype=int)
 
     # stitch image into numpy array
-    if method == 'linear_average':
+    if method == 'linear_average' or method == 'sigmoid_average':
         # sort crops by corner position
         crop_imgs = sorted(crop_imgs, key=lambda x: x['corner'])
         unique_row_idxs, crop_idxs = np.unique(
@@ -203,13 +219,25 @@ def stitch_crops(crop_imgs, method='linear_average'):
             # get row imgs
             crop_row1 = crop_rows[i]
             crop_row2 = crop_rows[i + 1]
-            row_img1, span1 = _stitch_row(crop_row1)
-            row_img2, span2 = _stitch_row(crop_row2)
+            row_img1, span1 = _stitch_row(crop_row1, method, method_args)
+            row_img2, span2 = _stitch_row(crop_row2, method, method_args)
 
             # create overlap_img
             overlap = [span2[0], span1[1]]
             overlap_ht = overlap[1] - overlap[0]
-            weights = np.linspace(0, 1, overlap_ht)
+
+            x_vec = np.linspace(0, 1, overlap_ht)
+            if method == 'linear_average':
+                weights = x_vec
+            elif method == 'sigmoid_average':
+                try:
+                    k = method_args['k']
+                except KeyError:
+                    k = 12
+                weights = 1.0 / (1.0 + np.exp(-k * (x_vec - 0.5)))
+            else:
+                weights = x_vec
+
             if n_channels == 1:
                 weights = weights[:, None]
             else:
@@ -331,7 +359,7 @@ def grid_crop_images(src_dir, dest_dir, crop_dims, recursive=True, stride_size=N
             except IOError:
                 print("cannot convert: ", filepath)
 
-def stitch_images(src_dir, dest_dir, recursive=True, output_ext='.jpg', method='linear_average', delimiter='-', zero_index=True, verbose=False):
+def stitch_images(src_dir, dest_dir, recursive=True, output_ext='.jpg', method='linear_average', method_args={}, delimiter='-', zero_index=True, verbose=False):
     """
     Apply stitch_crops to all images grouped within a set of directories.
 
@@ -404,7 +432,7 @@ def stitch_images(src_dir, dest_dir, recursive=True, output_ext='.jpg', method='
                          'corner': (r, c)}
             crop_list.append(crop_dict)
 
-        img = stitch_crops(crop_list, method=method)
+        img = stitch_crops(crop_list, method=method, method_args=method_args)
         
         out_path = filepath + output_ext
         try:
