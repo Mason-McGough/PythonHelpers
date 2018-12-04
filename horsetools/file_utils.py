@@ -58,6 +58,22 @@ def list_files(loc, return_dirs=False, return_files=True, recursive=False, valid
 
     return new_dirs + new_files
 
+def list_folders(loc, recursive=False):
+    """
+    Return a list of all folders within a directory loc.
+
+    Shorthand which invokes list_files under the hood for when only folders are needed.
+
+    Inputs:
+        loc - Path to directory to list folders from.
+        recursive - If true, searches directories recursively. (default: False)
+
+    Outputs:
+        folders - List of names of all directories in loc.
+    """
+
+    return list_files(loc, return_dirs=True, return_files=False, recursive=recursive)
+
 def get_nested_dirs(locs=['.']):
     """
     Return a list of all folders and subfolders within the directories in the list
