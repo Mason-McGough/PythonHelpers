@@ -188,15 +188,19 @@ def stitch_crops(crop_imgs, method='linear_average', method_args={}):
     img_dims = (max_corner[0] + max_dims[0], max_corner[1] + max_dims[1])
 
     # create numpy array to hold crops
-    if n_channels == 1:
-        img = np.zeros((img_dims[0], img_dims[1]), dtype=int)
-    else:
-        img = np.zeros((img_dims[0], img_dims[1], n_channels), dtype=int)
+    try:
+        if n_channels == 1:
+            img = np.zeros((img_dims[0], img_dims[1]), dtype=int)
+        else:
+            img = np.zeros((img_dims[0], img_dims[1], n_channels), dtype=int)
+    except MemoryError:
+        raise MemoryError('Failed to create image with dimensions [{}, {}, {}]'.format(
+            img_dims[0], img_dims[1], n_channels))
 
     # stitch image into numpy array
     if method == 'linear_average' or method == 'sigmoid_average':
         # sort crops by corner position
-        crop_imgs = sorted(crop_imgs, key=lambda x: x['corner'])
+        crop_imgs = sorted(crop_imgs, key=lambda x: x['corner'][0])
         unique_row_idxs, crop_idxs = np.unique(
             [i['corner'][0] for i in crop_imgs], 
             return_index=True
