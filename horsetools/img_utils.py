@@ -84,7 +84,7 @@ def stitch_crops(crop_imgs, method='linear_average', method_args={}):
             'xor'
         method_args - Dict containing keyword args to use with method. Options are:
             'sigmoid_average':
-                'k' - Sets spread of sigmoid function along x-axis (Default: 12)
+                'k' - Sets spread of sigmoid function along x-axis. (Default: 12)
     Outputs:
         img - Numpy array with stitched image.
     """
