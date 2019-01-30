@@ -467,7 +467,23 @@ def shift_hue(img, amt):
     img[:, :, 0] = (img[:, :, 0] + amt) / 1.0
     return color.hsv2rgb(img)
 
-# def shift_lightness(img, amt):
-#     img = color.rgb2hsv(img)
-#     img[:, :, 2] = np.clip(img[:, :, 2] + amt, 0.0, 1.0)
-#     return color.hsv2rgb(img)
+def shift_lightness(img, amt):
+    """
+    Shift the lightness of image.
+
+    Inputs:
+        img - Numpy-like image with three color channels.
+        amt - The amount of lightness shift to apply, in range [0.0, 1.0].
+    Outputs:
+        img - The output RGB image.
+    """
+
+    if not img.ndim == 3:
+        raise ValueError('img must have 3 dimensions (has {}).'.format(img.ndim))
+
+    if not img.shape[2] == 3:
+        raise ValueError('Size of channel dimension must be 3 (shape of img: {})'.format(img.shape))
+
+    img = color.rgb2hsv(img)
+    img[:, :, 2] = np.clip(img[:, :, 2] + amt, 0.0, 1.0)
+    return color.hsv2rgb(img)
