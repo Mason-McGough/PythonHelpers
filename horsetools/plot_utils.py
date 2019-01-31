@@ -1,5 +1,6 @@
 from .numpy_utils import subsample
 import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
 
 def scatter_3d(X, sample_size=None, fig=None, subplot=None, title='X', xlabel='X', 
                ylabel='Y', zlabel='Z'):
@@ -53,3 +54,14 @@ def scatter_3d(X, sample_size=None, fig=None, subplot=None, title='X', xlabel='X
     ax.set_zlabel(zlabel)
     
     return ax
+
+def grid_imshow(grid, imgs_list, imgs2_list):
+    for r in range(grid[0]):
+        for c in range(grid[1]):
+            img = imgs_list[grid[1] * r + c]
+            img2 = imgs2_list[grid[1] * r + c]
+
+            plt.subplot(2 * grid[0], grid[1], 2 * r * grid[1] + c + 1)
+            plt.imshow(img)
+            plt.subplot(2 * grid[0], grid[1], (2 * r + 1) * grid[1] + c + 1)
+            plt.imshow(img2)

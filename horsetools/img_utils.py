@@ -474,7 +474,7 @@ def shift_lightness(img, amt):
 
     Inputs:
         img - Numpy-like image with three color channels.
-        amt - The amount of lightness shift to apply, in range [0.0, 1.0].
+        amt - The amount of lightness shift to apply, in range [-1.0, 1.0].
     Outputs:
         img - The output RGB image.
     """
