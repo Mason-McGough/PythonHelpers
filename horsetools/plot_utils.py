@@ -56,6 +56,18 @@ def scatter_3d(X, sample_size=None, fig=None, subplot=None, title='X', xlabel='X
     return ax
 
 def grid_imshow(grid, imgs_list, imgs2_list):
+    """
+    Plot a grid of subplots with paired images.
+
+    Inputs:
+        grid - The list of dimensions of the grid.
+        imgs_list - The list of images to plot.
+        imgs2_list - The second list of images to plot. Must be the same length as
+            imgs_list.
+    Outputs:
+        None
+    """
+
     for r in range(grid[0]):
         for c in range(grid[1]):
             img = imgs_list[grid[1] * r + c]
