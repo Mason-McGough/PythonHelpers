@@ -504,3 +504,22 @@ def crop(img, left, top, right, bottom):
     """
 
     return img[left:right, top:bottom]
+
+def crop_center(img):
+    """
+    Crop the largest possible square from center of image.
+
+    Inputs:
+        img - The image to crop.
+    Outputs:
+        img - The cropped image.
+    """
+    
+    dims = img.shape[0:2]
+    short_axis, long_axis = np.argsort(dims)
+    short_width = dims[short_axis]
+    long_width = dims[long_axis]
+    begin = (long_width - short_width) // 2
+    
+    img = img.take(range(begin, begin + short_width), axis=long_axis)
+    return img
