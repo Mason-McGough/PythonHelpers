@@ -489,24 +489,18 @@ def shift_lightness(img, amt):
     img[:, :, 2] = np.clip(img[:, :, 2] + amt, 0.0, 1.0)
     return color.hsv2rgb(img)
 
-def crop_square(img, ulc, brc):
+def crop(img, left, top, right, bottom):
     """
     Crop rectangle from image.
 
     Inputs:
         img - The image to crop.
-        ulc - A length-2 list containing the row and column of the upper-left corner 
-            of the rectangle to crop.
-        brc - A length-2 list containing the row and column of the bottom-left corner 
-            of the rectangle to crop.
+        left - The leftmost index to crop the image.
+        top - The topmost index.
+        right - The rightmost index.
+        bottom - The bottommost index.
     Outputs:
-        img - The cropped image
+        img - The cropped image.
     """
 
-    if not len(ulc) == 2:
-        raise ValueError('ulc must be a length-2 list. (len: {})'.format(len(ulc)))
-
-    if not len(brc) == 2:
-        raise ValueError('brc must be a length-2 list. (len: {})'.format(len(brc)))
-
-    return img[ulc[0]:brc[0], ulc[1]:brc[1]]
+    return img[left:right, top:bottom]
